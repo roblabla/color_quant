@@ -60,6 +60,16 @@ that this copyright notice remain intact.
 //! let color_map = nq.color_map_rgba();
 //! ```
 //! 
+//!
+#![no_std]
+#![feature(alloc, core_intrinsics)]
+
+extern crate alloc;
+
+use core as std;
+use alloc::*;
+
+
 use std::cmp::{
     max,
     min
@@ -436,5 +446,48 @@ impl NeuQuant {
             }
         }
         best
+    }
+}
+
+trait FloatExt {
+    fn abs(self) -> Self;
+    fn round(self) -> Self;
+}
+
+// Implementation from math.rs
+const F64_SIGN_MASK: u64 = 1 << 63;
+const F64_EXP_MASK: u64 = 0x7FF0_0000_0000_0000;
+const F64_MANTISSA_MASK: u64 = 0x000F_FFFF_FFFF_FFFF;
+const F64_MAX_EXP: i32 = 1023;
+const F64_NAN_EXP: i32 = 1024;
+impl FloatExt for f64 {
+    fn abs(self) -> f64 {
+        let mut bits = self.to_bits();
+        bits &= !F64_SIGN_MASK;
+        f64::from_bits(bits)
+    }
+    fn round(self) -> f64 {
+        // See roundf for implementation details and commentary. The code structure does not differ,
+        // only the relevant constants do.
+        let mut bits = self.to_bits();
+        let exp = (((bits & F64_EXP_MASK) >> 52) as i32) - F64_MAX_EXP;
+        if exp < 0 {
+            bits &= F64_SIGN_MASK;
+            if exp == -1 {
+                bits |= 0x3FF0_0000_0000_0000;
+            }
+        } else if exp == F64_NAN_EXP {
+            return self + self;
+        } else if exp >= 52 {
+            return self;
+        } else {
+            let mask = F64_MANTISSA_MASK >> exp;
+            if bits & mask == 0 {
+                return self;
+            }
+            bits += 0x0008_0000_0000_0000 >> exp;
+            bits &= !mask;
+        }
+        f64::from_bits(bits)
     }
 }
