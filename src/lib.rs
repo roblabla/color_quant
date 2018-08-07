@@ -67,7 +67,7 @@ that this copyright notice remain intact.
 extern crate alloc;
 
 use core as std;
-use alloc::*;
+use alloc::prelude::*;
 
 
 use std::cmp::{
