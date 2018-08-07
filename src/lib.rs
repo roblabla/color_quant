@@ -63,7 +63,7 @@ that this copyright notice remain intact.
 //!
 #![no_std]
 #![feature(alloc, core_intrinsics)]
-
+#[macro_use]
 extern crate alloc;
 
 use core as std;
